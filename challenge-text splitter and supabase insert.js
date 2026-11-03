@@ -1,7 +1,7 @@
 // My attempt
 
 import { openai, supabase } from "./config.js";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 
 /*
   Challenge: Text Splitters, Embeddings, and Vector Databases!

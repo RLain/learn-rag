@@ -1,0 +1,27 @@
+{
+  "name": "learn-rag",
+  "version": "1.0.0",
+  "description": "Scrimba's \"Learn RAG\" course by Guil Hernandez",
+  "main": "challenge-rescue-data.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "rescue:chunking": "node --env-file=.env challenge-rescue-chunking.js",
+    "rescue:poc": "node --env-file=.env challenge-rescue-poc.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RLain/learn-rag.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RLain/learn-rag/issues"
+  },
+  "homepage": "https://github.com/RLain/learn-rag#readme",
+  "dependencies": {
+    "@langchain/textsplitters": "^1.0.2",
+    "@supabase/supabase-js": "^2.109.0",
+    "langchain": "^1.6.1",
+    "openai": "^6.49.0"
+  }
+}

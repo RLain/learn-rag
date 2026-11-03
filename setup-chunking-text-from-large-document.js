@@ -30,7 +30,7 @@ LangChain has two different methods:
 - RecursiveCharacterTextSplitter
 */
 
-import { CharacterTextSplitter } from "langchain/text_splitter";
+import { CharacterTextSplitter } from "@langchain/textsplitters";
 
 // LangChain text splitter
 async function splitDocument() {
@@ -47,7 +47,7 @@ async function splitDocument() {
 }
 splitDocument();
 
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 
 // LangChain text splitter
 async function splitDocument() {

@@ -1,5 +1,5 @@
 import { openai, supabase } from "./config.js";
-import { RecursiveCharacterTextSplitter } from "langchain/text_splitter";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 
 /* Split movies.txt into text chunks.
 Return LangChain's "output" – the array of Document objects. */

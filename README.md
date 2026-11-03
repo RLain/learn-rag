@@ -87,3 +87,71 @@ Operator | Description
 - https://developers.openai.com/api/docs/guides/embeddings
 - Supabase pgvector https://supabase.com/blog/openai-embeddings-postgres-vector
 - Supabase rpc() method https://supabase.com/docs/guides/ai/vector-columns#querying-a-vector--embedding
+
+## Chunking context
+
+Each chunk becomes one row: its text plus one embedding vector computed from that text alone. The database has no "this came after that" or "same document as" information. When you search, the query is embedded and compared against each chunk's vector independently, and the closest chunks come back.
+
+What overlap does
+
+Overlap is not a link between chunks. It just repeats the last few characters of one chunk at the start of the next. The point is to avoid cutting a sentence in half at a boundary, so the idea survives in at least one chunk. `Chunk 2 doesn't know chunk 1 exists`. It happens to contain some of the same words.
+
+Your bug is this problem
+
+Your 150-character chunks cut each record into pieces, roughly like this:
+
+- Chunk A: location: BOS 400, year: 2026, type: MSCA, content: We made a quick call...
+- Chunk B: gear: 100m ropes required to lower down cliff face...
+
+Chunk B has the gear info but never mentions "BOS 400". A query for "gear for BOS 400" matches chunk A well, which has no gear, and chunk B poorly. The model then only sees the chunks that got retrieved, so it said it had no gear list. Raising match_count to 10 worked because chunk B finally made it into the results.
+
+How people solve it
+
+- Keep related facts in one chunk. For structured data like yours, `one chunk per record is often best`. Your records are small enough.
+- Put identifying context in every chunk. For example, prefix each chunk with BOS 400 (2026):, so every piece matches queries about that location.
+- Store metadata. Add columns like location or source_id on each row. You can then fetch sibling chunks with the same id, or filter by location.
+- Retrieve more, or add neighbours. Return more chunks (as I did), or fetch the chunks before and after each match. This needs the ordering stored as metadata.
+- Use larger chunks. Bigger chunks keep more context together, but each embedding gets blurrier and the search less precise.
+
+The query doesn't need to match text inside the chunk exactly. Embeddings match by meaning, not keywords. But the chunk's own text is all the model has to match against.
+
+For your data, I'd store one chunk per record. The real question is whether to split each record by field, and for records this size I'd say no.
+
+Why one chunk per record works here
+
+- Each record is a single coherent unit: one operation, with its gear, area notes and outcome. Users will ask things like "what do I need for BOS 400?", which spans several fields.
+- Your longest record is roughly 900 characters, about 200 tokens. That's well within the comfortable range for one embedding.
+- It avoids the bug you just hit, where the gear sat in a different chunk from the location name.
+
+When to split by field
+
+Split only if a field gets long enough to dilute the embedding, or if queries target one field in isolation. If you do split:
+
+- Repeat the identifiers in every chunk. For example, BOS 400 (2026, MSCA) – Gear: ... and BOS 400 (2026, MSCA) – Area context: ....
+- Keep the metadata on each row. Store location, year and type as columns, so you can filter or fetch all chunks for one operation.
+
+Without those two things, field chunks are isolated, as I described earlier.
+
+A good format for a record chunk
+
+Label the fields so the embedding captures what each part means:
+
+Location: Bos 400 | Year: 2026 | Type: MSCA
+Content: We made a quick call...
+Gear: 100m ropes required...
+Area context: The XXX Road...
+
+That's close to what challenge-rescue-chunking.js already builds. The difference is that you'd skip the splitter and embed each record whole.
+
+Is there an ideal chunk size?
+
+There's no single number, but these rules of thumb hold:
+
+- Hard limit: text-embedding-3-small accepts up to 8,191 tokens, so you're nowhere near it.
+- Typical range: about 200–500 tokens (roughly 800–2,000 characters) for general prose. Small chunks of 100–150 characters like your current ones are usually too small. They lose context.
+- Trade-off: small chunks give precise matches but little context. Large chunks give more context, but each embedding blends several topics, so matching gets fuzzier.
+- Overlap: commonly 10–20% of the chunk size, and only useful for continuous prose. For structured records you can use none.
+
+`Splitters like RecursiveCharacterTextSplitter are for long unstructured documents`.
+
+`For a JSON list of records, skip the splitter and embed each record directly. It's simpler and works better.`
